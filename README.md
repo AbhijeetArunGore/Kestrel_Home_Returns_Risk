@@ -20,18 +20,18 @@ Product returns cost Kestrel **₹1,150 per returned order** (reverse pickup, QC
 
 ## 2. Key Findings & Measured Financial Impact
 
-| Metric | Measured Validation Result | Prevalence Baseline / Notes |
+| Metric | Estimated Validation Result | Prevalence Baseline / Notes |
 | :--- | :--- | :--- |
 | **Validation Dataset** | 2,126 orders (2026-04 to 2026-06) | Chronological held-out split (12m train, 3m val) |
 | **ROC-AUC** | **0.7807** | Strong positive/negative risk discrimination |
 | **PR-AUC** | **0.4038** | **3.5x improvement** over 11.5% prevalence baseline |
-| **Brier Score** | **0.0860** | **Well-calibrated probabilities** (vs 0.1020 baseline) |
+| **Brier Score** | **0.0860** | Brier score 0.0860, better than the 0.1020 prevalence baseline; calibration should be monitored on additional data. |
 | **Return Recall** | **70.20%** | Catches 172 of 245 actual returns at threshold 0.10 |
-| **Measured Net Savings** | **₹37,095 / quarter** | Under Ops Policy v4.1 Call Policy (₹45/call) |
+| **Estimated Validation-Based Net Savings** | **₹37,095 / quarter** | Under Ops Policy v4.1 Call Policy (₹45/call). Depends on assumed 35% return-prevention rate; must be validated in a live pilot. |
 | **Monthly Equivalent** | **₹12,365 / month** | Consistent annualization (₹37,095 / 3) |
 | **Annualized Equivalent** | **₹148,380 / year** | Consistent annualization (₹37,095 × 4) |
 
-> **Client Target & Accuracy Evaluation:** Demanding 95% accuracy on an imbalanced dataset (~11.5% returns) is counter-productive because predicting all 0s ("no return") achieves 88.5% accuracy while catching 0 returns. The threshold sweep shows that reaching 95% accuracy requires setting the decision threshold >0.70, where recall drops to <5% and net savings vanish. Optimizing for ROC-AUC and Net Rupee Savings at calibrated threshold **0.10** maximizes bottom-line P&L savings while avoiding customer churn for high-LTV Kestrel Shield members.
+> **Client Target & Accuracy Evaluation:** Demanding 95% accuracy on an imbalanced dataset (~11.5% returns) is counter-productive because predicting all 0s ("no return") achieves 88.5% accuracy while catching 0 returns. The highest accuracy among the tested thresholds was 89.42% at threshold 0.40, where recall was 16.33%. The 95% accuracy target was not achieved in this experiment. Optimizing for ROC-AUC and Net Rupee Savings at calibrated threshold **0.10** maximizes bottom-line P&L savings while avoiding customer churn for high-LTV Kestrel Shield members.
 
 ---
 
