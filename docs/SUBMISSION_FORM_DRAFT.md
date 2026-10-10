@@ -14,7 +14,7 @@ I built a complete, production-grade pre-dispatch return risk intelligence platf
 4. A validated submission file `predictions.csv` for the 2,096 unlabelled test orders.
 
 **The Number and The Money:**  
-On a strict 3-month chronological held-out validation dataset of 2,126 orders (April–June 2026), the model achieves a **0.7807 ROC-AUC**, a **0.4038 PR-AUC** (3.5x over the 11.5% random baseline), and a **0.0860 Brier score** (substantially outperforming the 0.1020 prevalence baseline). Operating at decision threshold 0.10 (flagging orders with ≥10% return probability), it catches **70.20% of all actual returns** (172/245). Triggering pre-dispatch confirmation calls (₹45/call) on flagged orders prevents 60 returns per quarter, delivering **measured net savings of ₹37,095 per quarter** (**₹12,365/month**, **₹148,380/year**) under Ops Policy v4.1 parameters.
+On a strict 3-month chronological held-out validation dataset of 2,126 orders (April–June 2026), the model achieves a **0.7807 ROC-AUC**, a **0.4038 PR-AUC** (3.5x over the 11.5% random baseline), and a **0.0860 Brier score** (outperforming the 0.1020 prevalence baseline). Operating at decision threshold 0.10 (flagging orders with ≥10% return probability), it catches **70.20% of all actual returns** (172/245). Triggering pre-dispatch confirmation calls (₹45/call) on flagged orders prevents an estimated 60 returns per quarter, delivering **estimated validation-based net savings of ₹37,095 per quarter** (**₹12,365/month**, **₹148,380/year**) under the stated operational assumptions (specifically the assumed 35% return-prevention rate from Policy §7, which requires a live pilot to validate).
 
 ---
 
@@ -29,7 +29,7 @@ On a strict 3-month chronological held-out validation dataset of 2,126 orders (A
 ### Question 3: How do you know it works? Sample size, how you checked, error rate, and the kind of case it gets wrong.
 **Answer:**  
 * **Sample Size & Testing:** Checked on 2,126 validation orders plus 9 automated unit/integration tests (`pytest`) covering data cleaning, payment gateway fixes, feature extractor leakage checks, calibrated model inference, and API response codes.
-* **Error Rate & Accuracy:** At calibrated threshold 0.10, accuracy is 71.31% (Recall: 70.20%, Precision: 24.26%).
+* **Error Rate & Metrics:** At calibrated threshold 0.10, accuracy is 71.31%, recall is 70.20%, and precision is 24.26%. The model explicitly prioritizes detecting return risks over maximizing overall accuracy on an imbalanced dataset.
 * **Failure Patterns:** 
   1. *False Positives (537 cases):* Prepaid orders with high discounts or marketplace channel tags where customers kept the item despite high risk indicators.
   2. *False Negatives (73 cases):* First-time prepaid app buyers who unexpectedly returned products due to post-delivery unboxing/quality issues unobservable prior to dispatch.
@@ -38,9 +38,7 @@ On a strict 3-month chronological held-out validation dataset of 2,126 orders (A
 
 ### Question 4: Did you change, narrow, or push back on the client's ask? What, when, and why?
 **Answer:**  
-Yes. I pushed back on two specific requests from Ritu Deshpande:
-1. **The 95% Accuracy Target:** Predicting the majority class ("no return") gives 88.5% accuracy but catches 0 returns. The threshold sweep proves that reaching 95% accuracy requires setting the decision threshold >0.70, where recall drops to <5% and net savings vanish. I demonstrated that optimizing for ROC-AUC and Net Rupee Savings at threshold 0.10 yields ₹37,095/quarter in bottom-line value.
-2. **Holding Dispatch for Flagged Orders:** Holding dispatch >24h incurs a 12% customer cancellation penalty (losing ~₹2,000 gross margin per cancelled order) and antagonizes high-LTV Kestrel Shield members. I recommended using flagged orders to trigger ₹45 pre-dispatch confirmation calls (which prevent 35% of returns without cancellation risk).
+Yes. I challenged the request to optimize solely for 95% accuracy because accuracy alone can hide poor return detection on an imbalanced dataset. On the chronological validation set, the highest accuracy in the tested threshold sweep was 89.42% at threshold 0.40, where recall fell to 16.33%. At threshold 0.10, the model detected 70.20% of actual returns. I therefore recommended evaluating the system on return detection and estimated net business value, not accuracy alone. The 95% target was not achieved in this validation experiment.
 
 ---
 
@@ -54,7 +52,7 @@ Yes. I pushed back on two specific requests from Ritu Deshpande:
 
 ### Question 6: What did you deliberately leave out, and why that rather than something else?
 **Answer:**  
-I deliberately omitted heavy deep learning architectures (e.g. PyTorch tabular transformers) and external paid LLM APIs. Tabular tree/calibrated logistic models are vastly more interpretable, calibrated, reproducible, and computationally efficient for tabular data of 10k rows, eliminating external API latency and cost risks.
+I deliberately omitted heavy deep learning architectures (e.g. PyTorch tabular transformers) and external paid LLM APIs. Tabular tree/calibrated logistic models are vastly more interpretable, reproducible, and computationally efficient for tabular data of 10k rows. 5-fold sigmoid calibration improved probability alignment (Brier score 0.0860 vs 0.1020 baseline), though full calibration curves across subsets should be monitored during a live pilot.
 
 ---
 
