@@ -21,16 +21,16 @@ def generate_evaluation_report(data_dir: str = "."):
     # Chronological Split
     train_fold, val_fold = split_chronological(train_clean, split_date="2026-04-01")
 
-    # Fit Logistic Regression Pipeline
-    pipeline = build_model_pipeline(model_type="logistic")
+    # Fit 5-Fold Calibrated Logistic Regression Pipeline
+    pipeline = build_model_pipeline(model_type="logistic", calibrated=True)
     X_tr, y_tr = train_fold.drop(columns=['returned']), train_fold['returned']
     X_val, y_val = val_fold.drop(columns=['returned']), val_fold['returned']
 
     pipeline.fit(X_tr, y_tr)
     val_probs = pipeline.predict_proba(X_val)[:, 1]
 
-    # Compute Primary Metrics at Threshold = 0.40
-    primary_eval = compute_all_metrics(y_val, val_probs, threshold=0.40)
+    # Compute Primary Metrics at Calibrated Threshold = 0.10
+    primary_eval = compute_all_metrics(y_val, val_probs, threshold=0.10)
 
     # Compute Threshold Grid
     grid_df = evaluate_threshold_grid(y_val, val_probs)
@@ -52,7 +52,7 @@ def generate_evaluation_report(data_dir: str = "."):
     md_content = f"""# Model Evaluation & Financial Impact Report — Kestrel Home Returns Risk
 
 **Date:** October 2026  
-**Evaluated Pipeline:** Pre-Dispatch Logistic Regression with Class Weighting & Calibrated Probability Scoring  
+**Evaluated Pipeline:** Pre-Dispatch 5-Fold Calibrated Logistic Regression (`CalibratedClassifierCV(method='sigmoid')`)  
 **Validation Strategy:** Chronological Held-Out Split (Train: 2025-04 to 2026-03, Val: 2026-04 to 2026-06)  
 
 ---
@@ -66,34 +66,34 @@ def generate_evaluation_report(data_dir: str = "."):
 
 ---
 
-## 2. Model Performance Summary (Primary Threshold = 0.40)
+## 2. Model Performance Summary (Calibrated Operating Threshold = 0.10)
 
-| Metric | Value | Baseline (Predict All 0s) | Notes |
+| Metric | Value | Prevalence Baseline (All 0s) | Notes / Evaluation |
 | :--- | :--- | :--- | :--- |
 | **Accuracy** | **{met['accuracy']:.2%}** | 88.48% | Accuracy alone is misleading on imbalanced target |
-| **Precision** | **{met['precision']:.2%}** | 0.00% | 1 in 4.5 flagged orders returns |
-| **Recall** | **{met['recall']:.2%}** | 0.00% | **Catches 76.73% of all actual returns** |
+| **Precision** | **{met['precision']:.2%}** | 0.00% | 1 in 4.1 flagged orders returns |
+| **Recall** | **{met['recall']:.2%}** | 0.00% | **Catches 70.20% of all actual returns (172/245)** |
 | **F1 Score** | **{met['f1_score']:.4f}** | 0.0000 | Balance of precision and recall |
-| **ROC-AUC** | **{met['roc_auc']:.4f}** | 0.5000 | Strong discrimination across risk spectrum |
-| **PR-AUC** | **{met['pr_auc']:.4f}** | 0.1152 | 3.5x boost over random baseline ranking |
-| **Brier Score** | **{met['brier_score']:.4f}** | 0.1020 | Well-calibrated return probability estimation |
+| **ROC-AUC** | **{met['roc_auc']:.4f}** | 0.5000 | Strong discrimination across positive/negative risk spectrum |
+| **PR-AUC** | **{met['pr_auc']:.4f}** | 0.1152 | **3.5x improvement** over random prevalence ranking |
+| **Brier Score** | **{met['brier_score']:.4f}** | **{met['prevalence_brier_baseline']:.4f}** | **Well-calibrated probabilities** (Brier < Prevalence baseline) |
 
 ---
 
 ## 3. Confusion Matrix Breakdown
 
-At Decision Threshold = 0.40 (Validation Sample Size: 2,126 orders):
+At Calibrated Decision Threshold = 0.10 (Validation Sample Size: 2,126 orders):
 
 ```
                      Actual Non-Returned (0)    Actual Returned (1)
-Predicted Low (0)          1,221 (TN)                 57 (FN)
-Predicted High (1)           660 (FP)                188 (TP)
+Predicted Low (0)          1,344 (TN)                 73 (FN)
+Predicted High (1)           537 (FP)                172 (TP)
 ```
 
-* **True Positives (TP = 188):** High-risk returns correctly identified before dispatch.
-* **False Positives (FP = 660):** Orders flagged for confirmation calls that would not have returned.
-* **False Negatives (FN = 57):** Returned orders missed by the model.
-* **True Negatives (TN = 1,221):** Low-risk orders correctly processed without intervention.
+* **True Positives (TP = 172):** High-risk returns correctly identified before dispatch.
+* **False Positives (FP = 537):** Orders flagged for confirmation calls that would not have returned.
+* **False Negatives (FN = 73):** Returned orders missed by the model.
+* **True Negatives (TN = 1,344):** Low-risk orders correctly processed without intervention.
 
 ---
 
@@ -107,13 +107,16 @@ Using Operations Policy v4.1 parameters:
 ### Financial Arithmetic (3-Month Validation Window):
 1. **Unmanaged Baseline Cost:** {y_val.sum()} returns × ₹1,150 = **₹{fin['unmanaged_return_cost_inr']:,.2f}**
 2. **Confirmation Calls Made:** {fin['calls_made']} calls × ₹45 = **₹{fin['call_cost_inr']:,.2f}**
-3. **Returns Prevented:** 188 TP × 35% = **{fin['returns_prevented']} returns prevented**
+3. **Returns Prevented:** 172 TP × 35% = **{fin['returns_prevented']} returns prevented**
 4. **Gross Savings:** {fin['returns_prevented']} prevented returns × ₹1,150 = **₹{fin['gross_savings_inr']:,.2f}**
-5. **Net Savings:** ₹{fin['gross_savings_inr']:,.2f} - ₹{fin['call_cost_inr']:,.2f} = **₹{fin['net_savings_inr']:,.2f} per quarter** (~₹12,580/month)
+5. **Measured Quarterly Net Savings:** ₹{fin['gross_savings_inr']:,.2f} - ₹{fin['call_cost_inr']:,.2f} = **₹{fin['net_savings_inr']:,.2f} per quarter**
+6. **Consistent Annualization:**
+   * **Monthly Equivalent:** ₹37,095 / 3 = **₹12,365 / month**
+   * **Annualized Equivalent:** ₹37,095 × 4 = **₹148,380 / year**
 
 ---
 
-## 5. Threshold Sensitivity Analysis
+## 5. Calibrated Threshold Sensitivity Analysis
 
 | Threshold | Flagged Vol | TP | FP | FN | Accuracy | Precision | Recall | F1 | Prevented | Call Cost (₹) | Gross Savings (₹) | Net Savings (₹) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -124,7 +127,13 @@ Using Operations Policy v4.1 parameters:
     md_content += """
 ---
 
-## 6. Target Leakage & Data Hygiene Safeguards
+## 6. Hidden-Test Forecast Qualification
+
+> **Important Forecast Qualification:** The forecast for `test_unlabelled.csv` (ROC-AUC ~0.78 ± 0.02, PR-AUC ~0.40 ± 0.03) is an empirical point estimate derived from the held-out 3-month validation window (April–June 2026). It is not a guaranteed result or statistically established confidence interval on the hidden test outcomes.
+
+---
+
+## 7. Target Leakage & Data Hygiene Safeguards
 
 The following features were strictly excluded from pre-dispatch model inputs:
 1. `pickup_scheduled_at`: Created only after logistics receives a return request (100% missing in test data).

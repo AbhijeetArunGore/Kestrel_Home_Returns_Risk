@@ -103,12 +103,14 @@ def get_metadata():
     """Model version, schema parameters, and evaluation metadata."""
     return {
         "model_version": "1.0.0",
-        "model_type": "LogisticRegression (Pre-Dispatch Pipeline)",
+        "model_type": "CalibratedLogisticRegression (5-fold Sigmoid)",
         "training_samples": 10504,
         "primary_metric": "ROC-AUC",
         "validation_roc_auc": 0.7807,
-        "validation_pr_auc": 0.4033,
-        "recommended_decision_threshold": 0.40,
+        "validation_pr_auc": 0.4038,
+        "validation_brier_score": 0.0860,
+        "prevalence_brier_baseline": 0.1020,
+        "recommended_decision_threshold": 0.10,
         "financial_return_cost_inr": 1150.0,
         "confirmation_call_cost_inr": 45.0
     }
@@ -135,7 +137,7 @@ def predict_order_risk(order: OrderRequest):
 
         prob = float(STATE["model"].predict_proba(clean_df)[0, 1])
 
-        risk_info = get_risk_band_and_decision(prob, threshold=0.40)
+        risk_info = get_risk_band_and_decision(prob, threshold=0.10)
         reasons = explain_prediction(raw_dict, prob)
 
         logger.info(f"Order {order.order_id} assessed: Prob={prob:.4f}, RiskBand={risk_info['risk_band']}")

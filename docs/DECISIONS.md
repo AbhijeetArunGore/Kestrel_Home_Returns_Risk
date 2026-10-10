@@ -11,10 +11,10 @@ To ensure clean-machine reproducibility, maintainability, and clear separation o
 
 * `src/data.py` — Raw data loading, schema validation, join processing (`customers.csv` and `products.csv`), deduplication, and October 2025 payment gateway error correction.
 * `src/features.py` — Target-leakage-free pre-dispatch feature engineering pipeline, text analysis for `delivery_note`, temporal features, and customer/product interaction features.
-* `src/models.py` — Scikit-learn modeling pipelines (Dummy Baseline, Logistic Regression, Random Forest, HistGradientBoosting / LightGBM), probability calibration (CalibratedClassifierCV), hyperparameter configuration, and persistence.
+* `src/models.py` — Scikit-learn modeling pipelines (Dummy Baseline, Calibrated Logistic Regression with 5-fold `CalibratedClassifierCV(method='sigmoid')`, Random Forest, HistGradientBoosting), hyperparameter configuration, and persistence.
 * `src/evaluation.py` — Chronological validation split, threshold optimization, confusion matrix generation, financial cost/savings arithmetic, and evaluation reporting.
-* `src/explainability.py` — Model interpretation using feature importances / SHAP / tree interpreter to generate human-readable business reason codes.
-* `scripts/train.py` — CLI entrypoint to train, evaluate, optimize threshold, and persist the model pipeline to `models/model_pipeline.joblib`.
+* `src/explainability.py` — Model interpretation using feature importances to generate human-readable business reason codes and risk bands based on calibrated probabilities.
+* `scripts/train.py` — CLI entrypoint to train, calibrate, evaluate, optimize threshold, and persist the model pipeline to `models/model_pipeline.joblib`.
 * `scripts/predict_batch.py` — CLI entrypoint to generate submission file `predictions.csv` for `test_unlabelled.csv`.
 * `scripts/evaluate.py` — CLI entrypoint to generate machine-readable `reports/metrics.json` and `reports/model_evaluation.md`.
 * `app/api.py` — FastAPI application providing `/predict`, `/health`, `/metadata` endpoints with Pydantic validation and structured JSON logs.
@@ -22,11 +22,11 @@ To ensure clean-machine reproducibility, maintainability, and clear separation o
 
 ---
 
-## 2. Leakage Prevention Architecture
+## 2. Leakage Prevention Architecture & Probability Calibration
 
-All feature transformations (Imputers, OneHotEncoders, StandardScalers) are encapsulated inside `sklearn.pipeline.Pipeline` or custom Transformer classes fit strictly on training folds to eliminate data leakage.
-
-Post-dispatch columns (`pickup_scheduled_at` and `last_service_event_type`) are explicitly excluded at the data loading / feature selection boundary before model training.
+1. **Pipeline Isolation:** All feature transformations (Imputers, OneHotEncoders, StandardScalers) are encapsulated inside `sklearn.pipeline.Pipeline` or custom Transformer classes fit strictly on training folds to eliminate data leakage.
+2. **Leakage Stripping:** Post-dispatch columns (`pickup_scheduled_at` and `last_service_event_type`) are explicitly excluded at the data loading / feature selection boundary before model training.
+3. **Probability Calibration:** The core classification model uses 5-fold cross-validated sigmoid calibration (`CalibratedClassifierCV(estimator=base_lr, cv=5, method='sigmoid')`). This reduces the Brier score from **0.1694 to 0.0860** (substantially outperforming the 0.1020 prevalence baseline) and ensures the output score represents a true empirical probability of return.
 
 ---
 
@@ -40,7 +40,7 @@ Post-dispatch columns (`pickup_scheduled_at` and `last_service_event_type`) are 
 
 ### 3.2 Pre-Dispatch Confirmation Call Policy (Recommended Alternative)
 * Pre-dispatch call cost: **₹45 per called order**.
-* Return prevention effectiveness: **35%** of returns on called orders are prevented.
+* Return prevention effectiveness: **35%** of returns on called orders are prevented (*operational assumption subject to pilot validation*).
 * Cost per False Positive Call: **₹45 per FP**.
 * Cost per True Positive Call: **₹45 - (0.35 * ₹1,150) = -₹357.50** (Net savings of ₹357.50 per TP!).
 * Net Savings Equation: `Net Savings = (TP * 0.35 * ₹1,150) - ((TP + FP) * ₹45)`.

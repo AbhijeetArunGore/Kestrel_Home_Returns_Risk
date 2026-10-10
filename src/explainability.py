@@ -2,19 +2,22 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any, List
 
-def get_risk_band_and_decision(prob: float, threshold: float = 0.40) -> Dict[str, str]:
-    """Categorize risk probability into transparent business risk band and action decision."""
-    if prob < 0.25:
+def get_risk_band_and_decision(prob: float, threshold: float = 0.10) -> Dict[str, str]:
+    """
+    Categorize calibrated risk probability into transparent business risk bands and decisions.
+    Since base return prevalence is ~11.4%, a calibrated probability >= 0.10 represents elevated risk.
+    """
+    if prob < 0.10:
         return {
             "risk_band": "Low Risk",
             "decision": "Normal Processing",
             "recommended_action": "Proceed with standard warehouse dispatch. No operational intervention required."
         }
-    elif prob < 0.50:
+    elif prob < 0.25:
         return {
             "risk_band": "Medium Risk",
             "decision": "Standard Confirmation Call",
-            "recommended_action": f"Initiate a pre-dispatch confirmation call (Cost: ₹45) to verify order details and delivery readiness."
+            "recommended_action": "Initiate a pre-dispatch confirmation call (Cost: ₹45) to verify order details and delivery readiness."
         }
     else:
         return {
@@ -75,7 +78,6 @@ def explain_prediction(order_dict: Dict[str, Any], prob: float) -> List[str]:
     if shield == "Y":
         reasons.append("Kestrel Shield member profile (eligible for free 30-day returns).")
 
-    # Return top 3 reasons
     if not reasons:
         reasons.append("Order parameters align closely with typical fulfillment profiles.")
 

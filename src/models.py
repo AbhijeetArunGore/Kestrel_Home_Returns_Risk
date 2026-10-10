@@ -33,19 +33,28 @@ def create_preprocessing_pipeline() -> ColumnTransformer:
     )
 
 def build_model_pipeline(model_type: str = "logistic", calibrated: bool = True) -> Pipeline:
-    """Build a complete feature extraction, preprocessing, and classification pipeline."""
+    """
+    Build a complete feature extraction, preprocessing, and classification pipeline.
+    When calibrated=True, wraps the estimator in 5-fold CalibratedClassifierCV(method='sigmoid')
+    to ensure output probabilities reflect true empirical return risk (Brier score < prevalence baseline).
+    """
     preprocessor = create_preprocessing_pipeline()
 
     if model_type == "logistic":
-        clf = LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42)
+        base_clf = LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42)
     elif model_type == "rf":
-        clf = RandomForestClassifier(n_estimators=200, max_depth=10, class_weight='balanced', random_state=42)
+        base_clf = RandomForestClassifier(n_estimators=200, max_depth=10, class_weight='balanced', random_state=42)
     elif model_type == "hgb":
-        clf = HistGradientBoostingClassifier(max_iter=150, class_weight='balanced', random_state=42)
+        base_clf = HistGradientBoostingClassifier(max_iter=150, class_weight='balanced', random_state=42)
     elif model_type == "dummy":
-        clf = DummyClassifier(strategy='prior')
+        base_clf = DummyClassifier(strategy='prior')
     else:
         raise ValueError(f"Unknown model_type: {model_type}")
+
+    if calibrated and model_type != "dummy":
+        clf = CalibratedClassifierCV(estimator=base_clf, cv=5, method='sigmoid')
+    else:
+        clf = base_clf
 
     pipeline = Pipeline([
         ('extractor', KestrelFeatureExtractor()),

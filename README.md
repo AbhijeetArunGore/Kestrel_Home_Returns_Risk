@@ -11,24 +11,27 @@ Kestrel Home Appliances sells air fryers, mixer-grinders, water purifiers, robot
 
 Product returns cost Kestrel **₹1,150 per returned order** (reverse pickup, QC inspection, repacking, write-down). This repository implements an end-to-end, production-grade pre-dispatch return risk intelligence platform that:
 1. Audits and cleans raw order feeds (excluding post-dispatch target leakage features and correcting a 100x payment gateway error across October 2025 orders).
-2. Fits a calibrated scikit-learn feature pipeline (`models/model_pipeline.joblib`) evaluated on a chronological held-out validation batch.
+2. Fits a 5-fold calibrated scikit-learn feature pipeline (`CalibratedClassifierCV(method='sigmoid')`, saved at `models/model_pipeline.joblib`) evaluated on a chronological held-out validation batch.
 3. Generates validated return probability predictions (`predictions.csv`) for 2,096 unlabelled test orders.
 4. Exposes a FastAPI prediction REST microservice (`app/api.py`) with input validation, human-readable explanations, and structured logs.
 5. Provides an interactive Streamlit operations dashboard (`app/ui.py`) for warehouse and service desk teams.
 
 ---
 
-## 2. Key Findings & Financial Impact
+## 2. Key Findings & Measured Financial Impact
 
-| Metric | Validation Measured Result | Operational Note |
+| Metric | Measured Validation Result | Prevalence Baseline / Notes |
 | :--- | :--- | :--- |
 | **Validation Dataset** | 2,126 orders (2026-04 to 2026-06) | Chronological held-out split (12m train, 3m val) |
-| **ROC-AUC** | **0.7807** | Strong discrimination across positive/negative risk spectrum |
-| **PR-AUC** | **0.4033** | 3.5x improvement over 11.5% random baseline |
-| **Return Recall** | **76.73%** | Catches 188 of 245 actual returns at decision threshold 0.40 |
-| **Net Financial Savings** | **₹37,740 / quarter** (**~₹151,000/year**) | Under Ops Policy v4.1 Confirmation Call Policy (₹45/call) |
+| **ROC-AUC** | **0.7807** | Strong positive/negative risk discrimination |
+| **PR-AUC** | **0.4038** | **3.5x improvement** over 11.5% prevalence baseline |
+| **Brier Score** | **0.0860** | **Well-calibrated probabilities** (vs 0.1020 baseline) |
+| **Return Recall** | **70.20%** | Catches 172 of 245 actual returns at threshold 0.10 |
+| **Measured Net Savings** | **₹37,095 / quarter** | Under Ops Policy v4.1 Call Policy (₹45/call) |
+| **Monthly Equivalent** | **₹12,365 / month** | Consistent annualization (₹37,095 / 3) |
+| **Annualized Equivalent** | **₹148,380 / year** | Consistent annualization (₹37,095 × 4) |
 
-> **Client Target Evaluation:** Demanding 95% accuracy on an imbalanced dataset (~11.5% returns) is counter-productive because predicting all 0s ("no return") achieves 88.5% accuracy while catching 0 returns. Optimizing for ROC-AUC and Net Rupee Savings at threshold **0.40** maximizes bottom-line P&L savings while avoiding customer churn for high-LTV Kestrel Shield members.
+> **Client Target & Accuracy Evaluation:** Demanding 95% accuracy on an imbalanced dataset (~11.5% returns) is counter-productive because predicting all 0s ("no return") achieves 88.5% accuracy while catching 0 returns. The threshold sweep shows that reaching 95% accuracy requires setting the decision threshold >0.70, where recall drops to <5% and net savings vanish. Optimizing for ROC-AUC and Net Rupee Savings at calibrated threshold **0.10** maximizes bottom-line P&L savings while avoiding customer churn for high-LTV Kestrel Shield members.
 
 ---
 
@@ -54,7 +57,7 @@ Kestrel_Home_Returns_Risk/
 │   ├── metrics.json             # Machine-readable evaluation metrics
 │   └── model_evaluation.md      # Comprehensive markdown evaluation report
 ├── scripts/
-│   ├── train.py                 # Pipeline training and persistence script
+│   ├── train.py                 # Pipeline training, calibration and persistence script
 │   ├── evaluate.py              # Reproducible evaluation report generator
 │   └── predict_batch.py         # Batch prediction script generating predictions.csv
 ├── src/
@@ -69,7 +72,7 @@ Kestrel_Home_Returns_Risk/
 │   └── test_features.py         # Leakage exclusion & feature shape tests
 ├── memo_to_ritu.md              # One-page executive business memo
 ├── predictions.csv              # Submission prediction output file
-├── requirements.txt             # Python package dependencies
+├── requirements.txt             # Curated Python package dependencies
 ├── .env.example                 # Environment configuration template
 └── README.md                    # System documentation & setup guide
 ```
@@ -82,7 +85,7 @@ Kestrel_Home_Returns_Risk/
 * Python 3.11 or 3.12 installed.
 
 ### 1. Installation
-Clone the repository and install dependencies:
+Clone the repository and install dependencies from `requirements.txt`:
 ```bash
 git clone https://github.com/AbhijeetArunGore/Kestrel_Home_Returns_Risk.git
 cd Kestrel_Home_Returns_Risk
@@ -93,7 +96,7 @@ pip install -r requirements.txt
 Ensure assignment files (`train.csv`, `test_unlabelled.csv`, `customers.csv`, `products.csv`, `sample_submission.csv`, `ops-policy.pdf`, `email-thread.txt`, `README.txt`) are present in the project root or `data/raw/` directory.
 
 ### 3. Model Training & Pipeline Persistence
-Train the pipeline on historical data and persist the fitted model artifact:
+Train and calibrate the 5-fold pipeline on historical data and persist the fitted model artifact:
 ```bash
 python scripts/train.py
 ```
@@ -161,7 +164,7 @@ Open browser at `http://localhost:8501`.
 ```json
 {
   "order_id": "KO2609888",
-  "return_probability": 0.7245,
+  "return_probability": 0.4285,
   "risk_band": "High Risk",
   "decision": "Priority Review & Confirmation Call",
   "recommended_action": "Flag for urgent pre-dispatch phone verification. Verify model selection, address accuracy, and payment commitment.",

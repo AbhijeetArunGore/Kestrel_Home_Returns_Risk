@@ -26,8 +26,8 @@ def split_chronological(clean_df: pd.DataFrame, split_date: str = "2026-04-01") 
 
     return train_df, val_df
 
-def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0.40) -> Dict[str, Any]:
-    """Compute comprehensive classification and financial metrics for a model."""
+def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0.10) -> Dict[str, Any]:
+    """Compute comprehensive classification and financial metrics for a calibrated model."""
     y_pred = (y_prob >= threshold).astype(int)
 
     acc = float(accuracy_score(y_true, y_pred))
@@ -37,6 +37,7 @@ def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float
     roc_auc = float(roc_auc_score(y_true, y_prob)) if len(np.unique(y_true)) > 1 else 0.5
     pr_auc = float(average_precision_score(y_true, y_prob))
     brier = float(brier_score_loss(y_true, y_prob))
+    prevalence_brier = float(brier_score_loss(y_true, np.full_like(y_true, y_true.mean(), dtype=float)))
 
     cm = confusion_matrix(y_true, y_pred)
     tn, fp, fn, tp = int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1])
@@ -61,7 +62,8 @@ def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float
             "f1_score": round(f1, 4),
             "roc_auc": round(roc_auc, 4),
             "pr_auc": round(pr_auc, 4),
-            "brier_score": round(brier, 4)
+            "brier_score": round(brier, 4),
+            "prevalence_brier_baseline": round(prevalence_brier, 4)
         },
         "confusion_matrix": {
             "tn": tn,
@@ -75,6 +77,8 @@ def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float
             "call_cost_inr": call_cost,
             "gross_savings_inr": gross_savings,
             "net_savings_inr": net_savings,
+            "monthly_equivalent_net_savings_inr": round(net_savings / 3.0, 2),
+            "annualized_equivalent_net_savings_inr": round(net_savings * 4.0, 2),
             "unmanaged_return_cost_inr": unmanaged_cost,
             "net_managed_return_cost_inr": unmanaged_cost - net_savings
         }
@@ -82,7 +86,7 @@ def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float
 
 def evaluate_threshold_grid(y_true: np.ndarray, y_prob: np.ndarray) -> pd.DataFrame:
     """Evaluate financial and classification metrics across a grid of thresholds."""
-    thresholds = np.linspace(0.1, 0.9, 17)
+    thresholds = [0.05, 0.10, 0.12, 0.15, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
     rows = []
 
     for t in thresholds:

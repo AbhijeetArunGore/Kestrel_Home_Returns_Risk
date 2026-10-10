@@ -2,29 +2,32 @@
   "dataset_size": 2126,
   "total_returns": 245,
   "return_rate": 0.11523988711194733,
-  "threshold": 0.4,
+  "threshold": 0.1,
   "metrics": {
-    "accuracy": 0.6627,
-    "precision": 0.2217,
-    "recall": 0.7673,
-    "f1_score": 0.344,
+    "accuracy": 0.7131,
+    "precision": 0.2426,
+    "recall": 0.702,
+    "f1_score": 0.3606,
     "roc_auc": 0.7807,
-    "pr_auc": 0.4033,
-    "brier_score": 0.1694
+    "pr_auc": 0.4038,
+    "brier_score": 0.086,
+    "prevalence_brier_baseline": 0.102
   },
   "confusion_matrix": {
-    "tn": 1221,
-    "fp": 660,
-    "fn": 57,
-    "tp": 188
+    "tn": 1344,
+    "fp": 537,
+    "fn": 73,
+    "tp": 172
   },
   "financials_call_policy": {
-    "calls_made": 848,
-    "returns_prevented": 66,
-    "call_cost_inr": 38160.0,
-    "gross_savings_inr": 75900.0,
-    "net_savings_inr": 37740.0,
+    "calls_made": 709,
+    "returns_prevented": 60,
+    "call_cost_inr": 31905.0,
+    "gross_savings_inr": 69000.0,
+    "net_savings_inr": 37095.0,
+    "monthly_equivalent_net_savings_inr": 12365.0,
+    "annualized_equivalent_net_savings_inr": 148380.0,
     "unmanaged_return_cost_inr": 281750.0,
-    "net_managed_return_cost_inr": 244010.0
+    "net_managed_return_cost_inr": 244655.0
   }
 }

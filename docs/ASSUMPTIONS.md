@@ -66,7 +66,7 @@ An order return prediction system deployed at the warehouse dispatch point sees 
 | :--- | :--- | :--- |
 | **Cost per Returned Order** | **₹1,150** | Policy §4 & Finance Controller (Farhan Sheikh). Includes reverse logistics, QC inspection, repacking, write-down. |
 | **Pre-Dispatch Call Cost** | **₹45** | Policy §4. Outsourced confirmation call cost per completed call. |
-| **Call Success Rate** | **35%** | Policy §7. Pre-dispatch calls prevent 35% of returns on called orders (resolving model/address errors & buyer's remorse). |
+| **Call Success Rate** | **35%** | Policy §7. Pre-dispatch calls prevent 35% of returns on called orders (resolving model/address errors & buyer's remorse). *Note: Operational assumption requiring pilot validation.* |
 | **Order Hold Cancellation Risk** | **12%** | Policy §7. Orders held >24 hrs at dispatch are cancelled by customers 12% of the time. |
 | **Average Profit Margin Loss on Cancellation** | **~₹2,000** | Derived from average order value (~₹8,000) and standard D2C appliance gross margin (~25%). |
 | **Shield Member Strategy** | Free returns & 24m warranty | Policy §6 & Service Manager (Meenal Joshi). Highest LTV segment (~22% of customers). Indiscriminate holds risk customer churn. |
@@ -76,8 +76,8 @@ An order return prediction system deployed at the warehouse dispatch point sees 
 ## 5. Evaluation & Validation Strategy
 
 1. **Validation Split:** Chronological split.
-   * **Train set:** Orders placed from 2025-04-01 to 2026-03-31 (8,409 orders).
-   * **Validation set:** Orders placed from 2026-04-01 to 2026-06-30 (2,095 orders).
+   * **Train set:** Orders placed from 2025-04-01 to 2026-03-31 (8,378 orders).
+   * **Validation set:** Orders placed from 2026-04-01 to 2026-06-30 (2,126 orders).
    * Approximates real-world deployment where historical 12 months predict the upcoming 3 months (`test_unlabelled.csv`).
-2. **Primary Ranking Metric:** ROC-AUC & PR-AUC (Precision-Recall Area Under Curve).
-3. **Primary Financial Metric:** Net Financial Savings (INR) calculated under operational decision policies (Confirmation Call Pilot vs. Order Hold Policy).
+2. **Primary Ranking & Calibration Metrics:** ROC-AUC (0.7807), PR-AUC (0.4038), and Brier Score (0.0860 vs 0.1020 baseline).
+3. **Primary Financial Metric:** Measured Net Financial Savings (**₹37,095 per quarter**, **₹12,365/month**, **₹148,380/year**) calculated under the Confirmation Call Policy at calibrated threshold 0.10.
