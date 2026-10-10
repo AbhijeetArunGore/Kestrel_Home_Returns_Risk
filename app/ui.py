@@ -28,7 +28,7 @@ try:
     else:
         st.sidebar.warning("🟡 API Status Degraded")
 except Exception:
-    st.sidebar.error("🔴 API Connection Failed (Start backend API with `uvicorn app.api:app --reload`)")
+    st.sidebar.error("🔴 API Connection Failed (Start backend API with `python -m uvicorn app.api:app --reload`)")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### Sample Record Presets")

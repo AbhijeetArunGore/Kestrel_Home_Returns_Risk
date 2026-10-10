@@ -119,21 +119,33 @@ Execute unit and integration tests:
 python -m pytest tests/ -v
 ```
 
-### 7. Launch REST API Service
-Start the FastAPI backend server:
-```bash
-uvicorn app.api:app --reload --host 0.0.0.0 --port 8000
-```
-* Interactive API Documentation (Swagger UI): `http://localhost:8000/docs`
-* Health Check Endpoint: `http://localhost:8000/health`
-* Metadata Endpoint: `http://localhost:8000/metadata`
+### 7. Run Everything Live (Single Command)
+Run both backend API and frontend Streamlit dashboard simultaneously:
 
-### 8. Launch Streamlit User Interface
-In a separate terminal, launch the web dashboard:
-```bash
-streamlit run app/ui.py
-```
-Open browser at `http://localhost:8501`.
+* **PowerShell (Windows):**
+  ```powershell
+  Start-Process python -ArgumentList "-m uvicorn app.api:app --port 8000" ; python -m streamlit run app/ui.py
+  ```
+* **Bash / Linux / macOS:**
+  ```bash
+  python -m uvicorn app.api:app --port 8000 & python -m streamlit run app/ui.py
+  ```
+
+### 8. Launch Services Individually
+
+* **Backend API (FastAPI):**
+  ```bash
+  python -m uvicorn app.api:app --reload --host 0.0.0.0 --port 8000
+  ```
+  * Interactive API Documentation (Swagger UI): `http://localhost:8000/docs`
+  * Health Check Endpoint: `http://localhost:8000/health`
+  * Metadata Endpoint: `http://localhost:8000/metadata`
+
+* **Frontend Dashboard (Streamlit):**
+  ```bash
+  python -m streamlit run app/ui.py
+  ```
+  Open browser at `http://localhost:8501`.
 
 ---
 
