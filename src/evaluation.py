@@ -85,8 +85,8 @@ def compute_all_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float
     }
 
 def evaluate_threshold_grid(y_true: np.ndarray, y_prob: np.ndarray) -> pd.DataFrame:
-    """Evaluate financial and classification metrics across a grid of thresholds."""
-    thresholds = [0.05, 0.10, 0.12, 0.15, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
+    """Evaluate financial and classification metrics across an extended grid of thresholds (0.05 to 0.90)."""
+    thresholds = [0.05, 0.10, 0.12, 0.15, 0.18, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90]
     rows = []
 
     for t in thresholds:
